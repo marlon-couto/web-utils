@@ -14,8 +14,8 @@ def is_external_url(url):
 
 
 def extract_urls_from_style(style_content, base_url=None):
-    urls = re.findall(r'url\((.*?)\)', style_content)
-    urls = [url.strip('"\'') for url in urls]
+    urls = re.findall(r"url\((.*?)\)", style_content)
+    urls = [url.strip("\"'") for url in urls]
     if base_url:
         urls = [urljoin(base_url, url) for url in urls]
     return urls
@@ -92,7 +92,9 @@ def parse_and_download(input_file, output_folder):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Download all images and videos from an HTML or Astro file.")
+    parser = argparse.ArgumentParser(
+        description="Download all images and videos from an HTML or Astro file."
+    )
     parser.add_argument("input", help="Path to the input HTML or Astro file.")
     parser.add_argument("output", help="Path to the output directory.")
     args = parser.parse_args()
