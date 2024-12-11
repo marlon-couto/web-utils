@@ -2,7 +2,8 @@ import argparse
 import mimetypes
 import os
 import re
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, unquote
+from PIL import Image
 
 import requests
 from bs4 import BeautifulSoup
@@ -21,6 +22,15 @@ def extract_urls_from_style(style_content, base_url=None):
     return urls
 
 
+def image_converter(input_path, output_path):
+    try:
+        with Image.open(input_path) as img:
+            img.save(output_path, format="WebP")
+            print(f"Converted to WebP: {output_path}")
+    except Exception as e:
+        print(f"Failed to convert {input_path} to WebP: {e}")
+
+
 def download_file(url, output_folder):
     try:
         response = requests.get(url, stream=True, timeout=10)
@@ -30,8 +40,10 @@ def download_file(url, output_folder):
         extension = mimetypes.guess_extension(content_type) if content_type else ""
 
         file_name = os.path.basename(url.split("?")[0])
+        file_name = unquote(file_name)
+        file_name = re.sub(r"[^a-zA-Z0-9._-]", "_", file_name)
         if not os.path.splitext(file_name)[1]:
-            file_name += extension
+            file_name += extension or ""
 
         output_path = os.path.join(output_folder, file_name)
         if os.path.exists(output_path):
@@ -43,6 +55,13 @@ def download_file(url, output_folder):
                 file.write(chunk)
 
         print(f"Downloaded: {file_name}")
+
+        if extension is not None and extension.lower() in [".jpg", ".jpeg", ".png"]:
+            webp_file_name = os.path.splitext(file_name)[0] + ".webp"
+            webp_output_path = os.path.join(output_folder, webp_file_name)
+
+            image_converter(webp_file_name, webp_output_path)
+            os.remove(output_path)
     except requests.RequestException as e:
         print(f"Failed to download {url}: {e}")
 
@@ -95,8 +114,8 @@ def main():
     parser = argparse.ArgumentParser(
         description="Download all images and videos from an HTML or Astro file."
     )
-    parser.add_argument("input", help="Path to the input HTML or Astro file.")
-    parser.add_argument("output", help="Path to the output directory.")
+    parser.add_argument("--input", help="path to the input HTML or Astro file.")
+    parser.add_argument("--output", help="path to the output directory.")
     args = parser.parse_args()
     parse_and_download(args.input, args.output)
 
